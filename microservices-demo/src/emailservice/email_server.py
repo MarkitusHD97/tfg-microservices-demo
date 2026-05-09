@@ -20,6 +20,7 @@ import os
 import sys
 import time
 import grpc
+import random
 import traceback
 from jinja2 import Environment, FileSystemLoader, select_autoescape, TemplateError
 from google.api_core.exceptions import GoogleAPICallError
@@ -108,6 +109,17 @@ class EmailService(BaseEmailService):
 class DummyEmailService(BaseEmailService):
   def SendOrderConfirmation(self, request, context):
     logger.info('A request to send order confirmation email to {} has been received.'.format(request.email))
+    
+    # Afegir latència extra a partir de variable d'entorn (p. e. cridar a SMTP server)
+    extra_latency = os.environ.get('EXTRA_LATENCY')
+    if extra_latency is not None:
+      mu = float(extra_latency)
+      if mu > 0:
+        sigma = mu * 0.2 # 20% desviació estàndard
+        stochastic_latency = max(0, random.gauss(mu, sigma))
+        logger.info(f'Time sleep durant {stochastic_latency:.2f} segons (mitjana {mu} s) per a simular latència')
+        time.sleep(stochastic_latency)
+
     return demo_pb2.Empty()
 
 class HealthCheck():
