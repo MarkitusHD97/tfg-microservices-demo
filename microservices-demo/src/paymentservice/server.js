@@ -41,6 +41,33 @@ class HipsterShopServer {
   static ChargeServiceHandler(call, callback) {
     try {
       logger.info(`PaymentService#Charge invoked with request ${JSON.stringify(call.request)}`);
+
+      // Afegir latència extra a partir de variable d'entorn (p. e. cridar a API bancària)
+      const extraLatencyStr = process.env.EXTRA_LATENCY;
+      if (extraLatencyStr) {
+        const extraLatency = parseInt(extraLatencyStr, 10);
+        if (!isNaN(extraLatency) && extraLatency > 0) {
+          // Calcular latència estocàstica utilitzant la transformada de Box-Muller
+          const std = extraLatency * 0.2; // Desviació estàndard
+          const u = 1 - Math.random();
+          const v = Math.random();
+          const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+          const stochasticLatency = Math.max(0, Math.round(z * std + extraLatency));
+          
+          logger.info(`Time sleep durant ${stochasticLatency} ms (mitjana ${extraLatency} ms) per a simular latència`);
+          setTimeout(() => {
+            try {
+              const response = charge(call.request);
+              callback(null, response);
+            } catch (err) {
+              console.warn(err);
+              callback(err);
+            }
+          }, stochasticLatency);
+          return; // Esperar que acabi timeout
+        }
+      }
+
       const response = charge(call.request);
       callback(null, response);
     } catch (err) {
