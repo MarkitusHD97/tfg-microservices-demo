@@ -69,6 +69,13 @@ func (fe *frontendServer) homeHandler(w http.ResponseWriter, r *http.Request) {
 		renderHTTPError(log, r, w, errors.Wrap(err, "could not retrieve products"), http.StatusInternalServerError)
 		return
 	}
+	
+	// Retallem visualment l'array a 9 productes per no saturar el navegador 
+	// ni fer masses crides al CurrencyService al augmentar el nombre de productes
+	if len(products) > 9 {
+		products = products[:9]
+	}
+
 	cart, err := fe.getCart(r.Context(), sessionID(r))
 	if err != nil {
 		renderHTTPError(log, r, w, errors.Wrap(err, "could not retrieve cart"), http.StatusInternalServerError)
