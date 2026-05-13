@@ -18,18 +18,28 @@ import random
 from locust import FastHttpUser, TaskSet, between
 from faker import Faker
 import datetime
+import json
+
 fake = Faker()
 
-products = [
-    '0PUK6V6EV0',
-    '1YMWWN1N4O',
-    '2ZYFJ3GM2N',
-    '66VCHSJNUP',
-    '6E92ZMYYFZ',
-    '9SIQT8TOJO',
-    'L9ECAV7KIM',
-    'LS4PSXUNUM',
-    'OLJCESPC7Z']
+products = []
+try:
+    with open("products.json", "r") as f:
+        data = json.load(f)
+        products = [p["id"] for p in data.get("products", [])]
+except Exception as e:
+    print(f"No s'ha pogut carregar products.json: {e}")
+    products = [
+        '0PUK6V6EV0',
+        '1YMWWN1N4O',
+        '2ZYFJ3GM2N',
+        '66VCHSJNUP',
+        '6E92ZMYYFZ',
+        '9SIQT8TOJO',
+        'L9ECAV7KIM',
+        'LS4PSXUNUM',
+        'OLJCESPC7Z'
+    ]
 
 def index(l):
     l.client.get("/")

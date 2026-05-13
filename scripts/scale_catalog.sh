@@ -57,11 +57,19 @@ elif total < current:
     print(f"S'han esborrat {current - total} productes. Total al catàleg: {len(data['products'])}.")
 else:
     print(f"Ja hi ha exactament {current} productes.")
+
 EOF
 
-echo "=== Actualitzant productcatalogservice ==="
+# Copiar el fitxer products.json resultant al loadgenerator per a que pugui per crides 
+cp "$PRODUCTS_FILE" "$SCRIPT_DIR/microservices-demo/src/loadgenerator/products.json"
+echo "S'ha copiat products.json a la carpeta del loadgenerator."
+
+
 if [ -f "$UPDATE_SCRIPT" ]; then
+    echo "=== Actualitzant productcatalogservice ==="
     bash "$UPDATE_SCRIPT" productcatalogservice
+    echo "=== Actualitzant loadgenerator (Locust) ==="
+    bash "$UPDATE_SCRIPT" loadgenerator
 else
     echo "Error: No s'ha trobat l'update_script a $UPDATE_SCRIPT"
 fi
