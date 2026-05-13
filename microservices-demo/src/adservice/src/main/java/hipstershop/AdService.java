@@ -94,6 +94,18 @@ public final class AdService {
     public void getAds(AdRequest req, StreamObserver<AdResponse> responseObserver) {
       AdService service = AdService.getInstance();
       try {
+        // Afegir càrrega de CPU extra a partir de variable d'entorn
+        String cpuItersStr = System.getenv("EXTRA_CPU_ITERATIONS");
+        if (cpuItersStr != null && !cpuItersStr.isEmpty()) {
+          int iterations = Integer.parseInt(cpuItersStr);
+          if (iterations > 0) {
+              logger.info("Aplicant càrrega de CPU extra: " + iterations + " iteracions");
+              for (int i = 0; i < iterations; i++) {
+                  Math.pow(Math.random(), Math.random());
+              }
+          }
+        }
+
         List<Ad> allAds = new ArrayList<>();
         logger.info("received ad request (context_words=" + req.getContextKeysList() + ")");
         if (req.getContextKeysCount() > 0) {
