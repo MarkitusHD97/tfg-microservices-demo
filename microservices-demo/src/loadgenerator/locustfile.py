@@ -19,6 +19,7 @@ from locust import FastHttpUser, TaskSet, between
 from faker import Faker
 import datetime
 import json
+import os
 
 fake = Faker()
 
@@ -50,14 +51,14 @@ def setCurrency(l):
         {'currency_code': random.choice(currencies)})
 
 def browseProduct(l):
-    l.client.get("/product/" + random.choice(products))
+    l.client.get("/product/" + random.choice(products), name="/product/[id]")
 
 def viewCart(l):
     l.client.get("/cart")
 
 def addToCart(l):
     product = random.choice(products)
-    l.client.get("/product/" + product)
+    l.client.get("/product/" + product, name="/product/[id]")
     l.client.post("/cart", {
         'product_id': product,
         'quantity': random.randint(1,10)})
@@ -90,12 +91,32 @@ class UserBehavior(TaskSet):
     def on_start(self):
         index(self)
 
-    tasks = {index: 1,
-        setCurrency: 2,
-        browseProduct: 10,
-        addToCart: 2,
-        viewCart: 3,
-        checkout: 1}
+    scenario = os.environ.get("SCENARIO_TYPE", "normal")
+    
+    if scenario == "sales":
+        # Pesos al escenari 3: simula època de rebaixes
+        tasks = {index: 1,
+            setCurrency: 2,
+            browseProduct: 4,
+            addToCart: 6,
+            viewCart: 3,
+            checkout: 3}
+    elif scenario == "browse":
+        # Pesos al escenari 4: simula època de navegació sense comprar
+        tasks = {index: 1,
+            setCurrency: 2,
+            browseProduct: 20,
+            addToCart: 2,
+            viewCart: 3,
+            checkout: 1}
+    else:
+        # Pesos normals
+        tasks = {index: 1,
+            setCurrency: 2,
+            browseProduct: 10,
+            addToCart: 2,
+            viewCart: 3,
+            checkout: 1}
 
 class WebsiteUser(FastHttpUser):
     tasks = [UserBehavior]
