@@ -40,6 +40,11 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from logger import getJSONLogger
 logger = getJSONLogger('recommendationservice-server')
 
+# Cache per guardar els productes i evitar fer peticions a productcatalogservice en cada consulta
+CACHE_TTL_SECONDS = int(os.getenv("RECOMM_CACHE_TTL", "300"))
+_cached_product_ids = []
+_cache_last_refreshed = 0
+
 def initStackdriverProfiling():
   project_id = None
   try:
@@ -69,10 +74,24 @@ def initStackdriverProfiling():
 class RecommendationService(demo_pb2_grpc.RecommendationServiceServicer):
     def ListRecommendations(self, request, context):
         max_responses = 5
-        # fetch list of products from product catalog stub
-        cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
-        product_ids = [x.id for x in cat_response.products]
-        filtered_products = list(set(product_ids)-set(request.product_ids))
+
+        global _cached_product_ids, _cache_last_refreshed
+        now = int(time.time())
+
+        # recarregar cache si està buida o si ha passat TTL
+        if not _cached_product_ids or (now - _cache_last_refreshed) > CACHE_TTL_SECONDS:
+          try:
+            cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
+            product_ids = [x.id for x in cat_response.products]
+            _cached_product_ids = list(product_ids)
+            _cache_last_refreshed = now
+          except Exception as e:
+            logger.warn(f"No s'ha pogut actualitzar la cache de productes: {e}")
+            product_ids = list(_cached_product_ids)
+        else:
+          product_ids = list(_cached_product_ids)
+
+        filtered_products = list(set(product_ids) - set(request.product_ids))
         num_products = len(filtered_products)
         num_return = min(max_responses, num_products)
         # sample list of indicies to return
@@ -146,6 +165,17 @@ if __name__ == "__main__":
     # start server
     logger.info("listening on port: " + port)
     server.add_insecure_port('[::]:'+port)
+
+    # Omplir cache a l'inici
+    try:
+      cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
+      ids = [x.id for x in cat_response.products]
+      _cached_product_ids = list(ids)
+      _cache_last_refreshed = int(time.time())
+      logger.info(f"Cache de productes inicialitzada amb {len(ids)} ids")
+    except Exception as e:
+      logger.warn(f"No s'ha pogut inicialitzar la cache de productes: {e}")
+
     server.start()
 
     # keep alive
