@@ -39,9 +39,16 @@ function run_scenario_1() {
     log "Warm-up (60 s)..."
     set_load 10 1
     sleep 60
+
+    local START_TIME=$(date +%s)
     
     log "Estabilització (5 min)..."
     sleep 300
+
+    local END_TIME=$(date +%s)
+
+    log "Exportant resultats a CSV..."
+    python3 ./scripts/export_metrics.py "control_escenari1_run${RUN}" "$START_TIME" "$END_TIME"
     
     log "Cooldown (60 s)..."
     stop_load
@@ -61,6 +68,8 @@ function run_scenario_2() {
     log "Warm-up (60 s)..."
     set_load 10 1
     sleep 60
+
+    local START_TIME=$(date +%s)
     
     log "Pujant a 100 usuaris..."
     set_load 100 $rate
@@ -86,6 +95,11 @@ function run_scenario_2() {
     log "Estabilització (5 min)..."
     sleep $hold_time
 
+    local END_TIME=$(date +%s)
+
+    log "Exportant resultats a CSV..."
+    python3 ./scripts/export_metrics.py "control_escenari2_run${RUN}" "$START_TIME" "$END_TIME"
+
     log "Cooldown (60 s)..."
     stop_load
     sleep 60
@@ -105,12 +119,19 @@ function run_scenario_3() {
     set_load 10 1
     sleep 60
 
+    local START_TIME=$(date +%s)
+
     log "Pujant a a 500 usuaris..."
     set_load 500 10
     sleep 49
     
     log "Estabilització (5 min)..."
     sleep 300
+
+    local END_TIME=$(date +%s)
+
+    log "Exportant resultats a CSV..."
+    python3 ./scripts/export_metrics.py "control_escenari3_run${RUN}" "$START_TIME" "$END_TIME"
     
     log "Cooldown (60 s)..."
     stop_load
@@ -135,6 +156,8 @@ function run_scenario_4() {
     log "Warm-up (60 s)..."
     set_load 10 1
     sleep 60
+
+    local START_TIME=$(date +%s)
     
     log "Pujant ràpidament a 700 usuaris..."
     set_load 700 $rate
@@ -149,6 +172,11 @@ function run_scenario_4() {
 
     log "Estabilització (60 s)..."
     sleep 60
+
+    local END_TIME=$(date +%s)
+
+    log "Exportant resultats a CSV..."
+    python3 ./scripts/export_metrics.py "control_escenari4_run${RUN}" "$START_TIME" "$END_TIME"
     
     log "Cooldown (60 s)..."
     stop_load
@@ -168,6 +196,8 @@ function run_scenario_5() {
     log "Warm-up (60 s)..."
     set_load 10 1
     sleep 60
+
+    local START_TIME=$(date +%s)
     
     log "Pujada inicial a 200 usuaris..."
     set_load 200 10
@@ -183,7 +213,12 @@ function run_scenario_5() {
     
     log "Baixada a 100 usuaris..."
     set_load 100 10
-    sleep 20    
+    sleep 20
+
+    local END_TIME=$(date +%s)
+
+    log "Exportant resultats a CSV..."
+    python3 ./scripts/export_metrics.py "control_escenari5_run${RUN}" "$START_TIME" "$END_TIME"    
     
     log "Cooldown (60 s)..."
     stop_load
@@ -207,6 +242,7 @@ sleep 5
 
 # Permetre executar un escenari concret (argument) o tots (per defecte)
 SCENARIO=${1:-all}
+RUN=${2:-1}
 
 if [ "$SCENARIO" == "1" ] || [ "$SCENARIO" == "all" ]; then
     run_scenario_1
