@@ -74,4 +74,4 @@ else
     echo "Error: No s'ha trobat l'update_script a $UPDATE_SCRIPT"
 fi
 
-echo "=== Tenda actualitzada amb el nou volum de prooductes! ==="
+echo "=== Tenda actualitzada amb el nou volum de productes! ==="

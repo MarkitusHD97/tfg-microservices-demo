@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - path: frontend-patch.yaml
+    target:
+      kind: Deployment
+      name: frontend
+  - path: adservice-patch.yaml
+    target:
+      kind: Deployment
+      name: adservice
+  - path: checkoutservice-patch.yaml
+    target:
+      kind: Deployment
+      name: checkoutservice
+  - path: currencyservice-patch.yaml
+    target:
+      kind: Deployment
+      name: currencyservice
+  - path: recommendationservice-patch.yaml
+    target:
+      kind: Deployment
+      name: recommendationservice
+  - path: cartservice-patch.yaml
+    target:
+      kind: Deployment
+      name: cartservice
+  - path: emailservice-patch.yaml
+    target:
+      kind: Deployment
+      name: emailservice
+  - path: paymentservice-patch.yaml
+    target:
+      kind: Deployment
+      name: paymentservice

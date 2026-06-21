@@ -70,7 +70,11 @@ def main():
     if not main_df.empty:
         # Ordenar per temps i guardar
         main_df = main_df.sort_values(by='Timestamp')
-        filename = f"results_{experiment_name}.csv"
+        
+        # Assegurar-se que la carpeta results existeix abans de guardar
+        os.makedirs("results", exist_ok=True)
+        filename = f"results/results_{experiment_name}.csv"
+        
         main_df.to_csv(filename, index=False)
         print(f"Dades guardades correctament a: {filename}")
     else:

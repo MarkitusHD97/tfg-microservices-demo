@@ -1,7 +1,24 @@
 #!/bin/bash
 
-# Assegurar que qualsevol caiguda del script aturi la càrrega
-trap stop_load EXIT
+PORT_FORWARD_PID=""
+
+# Assegurar que qualsevol caiguda del script aturi la càrrega i pari el port-forward
+trap cleanup EXIT
+
+function cleanup() {
+    stop_load
+    if [ -n "$PORT_FORWARD_PID" ]; then
+        log "Aturant el port-forward de Prometheus..."
+        kill $PORT_FORWARD_PID 2>/dev/null
+    fi
+}
+
+function start_port_forward() {
+    log "Iniciant connexió amb Prometheus..."
+    microk8s kubectl port-forward -n observability service/kube-prom-stack-kube-prome-prometheus 9090:9090 > /dev/null 2>&1 &
+    PORT_FORWARD_PID=$!
+    sleep 3
+}
 
 function log() {
     echo -e "\n[$(date +'%H:%M:%S')] $1"
@@ -31,10 +48,14 @@ function set_scenario_env() {
     sleep 5
 }
 
+function export_results() {
+    local scenario=$1
+    log "Exportant resultats a CSV..."
+    python3 ./scripts/export_metrics.py "${PHASE}_escenari${scenario}_run${RUN}" "$START_TIME" "$END_TIME"
+}
+
 function run_scenario_1() {
-    log "======================================================="
     log " ESCENARI 1: BASELINE"
-    log "======================================================="
     
     log "Warm-up (60 s)..."
     set_load 10 1
@@ -47,9 +68,8 @@ function run_scenario_1() {
 
     local END_TIME=$(date +%s)
 
-    log "Exportant resultats a CSV..."
-    python3 ./scripts/export_metrics.py "control_escenari1_run${RUN}" "$START_TIME" "$END_TIME"
-    
+    export_results 1
+
     log "Cooldown (60 s)..."
     stop_load
     sleep 60
@@ -58,9 +78,7 @@ function run_scenario_1() {
 }
 
 function run_scenario_2() {
-    log "======================================================="
     log " ESCENARI 2: ESCALAT PROGRESSIU"
-    log "======================================================="
     
     local rate=2
     local hold_time=300 # Segons que manté la càrrega abans del següent escalat
@@ -97,8 +115,7 @@ function run_scenario_2() {
 
     local END_TIME=$(date +%s)
 
-    log "Exportant resultats a CSV..."
-    python3 ./scripts/export_metrics.py "control_escenari2_run${RUN}" "$START_TIME" "$END_TIME"
+    export_results 2
 
     log "Cooldown (60 s)..."
     stop_load
@@ -108,9 +125,7 @@ function run_scenario_2() {
 }
 
 function run_scenario_3() {
-    log "======================================================="
     log " ESCENARI 3: REBAIXES"
-    log "======================================================="
     
     # Canviar variable d'entorn per a escenari de rebaixes
     set_scenario_env "sales"
@@ -130,8 +145,7 @@ function run_scenario_3() {
 
     local END_TIME=$(date +%s)
 
-    log "Exportant resultats a CSV..."
-    python3 ./scripts/export_metrics.py "control_escenari3_run${RUN}" "$START_TIME" "$END_TIME"
+    export_results 3
     
     log "Cooldown (60 s)..."
     stop_load
@@ -144,9 +158,7 @@ function run_scenario_3() {
 }
 
 function run_scenario_4() {
-    log "======================================================="
     log " ESCENARI 4: PIC"
-    log "======================================================="
     
     local rate=20
 
@@ -175,9 +187,8 @@ function run_scenario_4() {
 
     local END_TIME=$(date +%s)
 
-    log "Exportant resultats a CSV..."
-    python3 ./scripts/export_metrics.py "control_escenari4_run${RUN}" "$START_TIME" "$END_TIME"
-    
+    export_results 4
+
     log "Cooldown (60 s)..."
     stop_load
     sleep 60
@@ -189,9 +200,7 @@ function run_scenario_4() {
 }
 
 function run_scenario_5() {
-    log "======================================================="
     log " ESCENARI 5: ALTA VARIABILITAT"
-    log "======================================================="
 
     log "Warm-up (60 s)..."
     set_load 10 1
@@ -217,9 +226,8 @@ function run_scenario_5() {
 
     local END_TIME=$(date +%s)
 
-    log "Exportant resultats a CSV..."
-    python3 ./scripts/export_metrics.py "control_escenari5_run${RUN}" "$START_TIME" "$END_TIME"    
-    
+    export_results 5
+
     log "Cooldown (60 s)..."
     stop_load
     sleep 60
@@ -227,41 +235,46 @@ function run_scenario_5() {
     log "Escenari 5 finalitzat!"
 }
 
-# Inici del script
+function main() {
+    start_port_forward
 
-log "Comprovant connexió amb l'API de Locust..."
-microk8s kubectl exec deploy/loadgenerator -c main -- wget -q -O- http://localhost:8089/stats/requests > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-    echo "Error: No s'ha pogut establir connexió amb Locust."
-    exit 1
-fi
+    log "Comprovant connexió amb l'API de Locust..."
+    microk8s kubectl exec deploy/loadgenerator -c main -- wget -q -O- http://localhost:8089/stats/requests > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "Error: No s'ha pogut establir connexió amb Locust."
+        exit 1
+    fi
 
-# Assegurar que no hi ha càrrega prèvia en execució
-stop_load
-sleep 5
+    # Assegurar que no hi ha càrrega prèvia en execució
+    stop_load
+    sleep 5
 
-# Permetre executar un escenari concret (argument) o tots (per defecte)
-SCENARIO=${1:-all}
-RUN=${2:-1}
+    # Permetre executar un escenari concret (argument) o tots (per defecte)
+    local SCENARIO=${1:-all}
+    local RUN=${2:-1}
+    export PHASE=${3:-control}
 
-if [ "$SCENARIO" == "1" ] || [ "$SCENARIO" == "all" ]; then
-    run_scenario_1
-fi
+    if [ "$SCENARIO" == "1" ] || [ "$SCENARIO" == "all" ]; then
+        run_scenario_1
+    fi
 
-if [ "$SCENARIO" == "2" ] || [ "$SCENARIO" == "all" ]; then
-    run_scenario_2
-fi
+    if [ "$SCENARIO" == "2" ] || [ "$SCENARIO" == "all" ]; then
+        run_scenario_2
+    fi
 
-if [ "$SCENARIO" == "3" ] || [ "$SCENARIO" == "all" ]; then
-    run_scenario_3
-fi
+    if [ "$SCENARIO" == "3" ] || [ "$SCENARIO" == "all" ]; then
+        run_scenario_3
+    fi
 
-if [ "$SCENARIO" == "4" ] || [ "$SCENARIO" == "all" ]; then
-    run_scenario_4
-fi
+    if [ "$SCENARIO" == "4" ] || [ "$SCENARIO" == "all" ]; then
+        run_scenario_4
+    fi
 
-if [ "$SCENARIO" == "5" ] || [ "$SCENARIO" == "all" ]; then
-    run_scenario_5
-fi
+    if [ "$SCENARIO" == "5" ] || [ "$SCENARIO" == "all" ]; then
+        run_scenario_5
+    fi
 
-log "EXECUCIÓ FINALITZADA!"
+    log "EXECUCIÓ FINALITZADA!"
+}
+
+main "$@"

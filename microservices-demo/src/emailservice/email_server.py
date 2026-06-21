@@ -115,7 +115,7 @@ class DummyEmailService(BaseEmailService):
     if extra_latency is not None:
       mu = float(extra_latency)
       if mu > 0:
-        sigma = mu * 0.5 # Desviació estàndard
+        sigma = mu * 0.1 # Desviació estàndard
         stochastic_latency = max(0, random.gauss(mu, sigma))
         logger.info(f'Time sleep durant {stochastic_latency:.2f} segons (mitjana {mu} s) per a simular latència')
         time.sleep(stochastic_latency)

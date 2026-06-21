@@ -1,4 +1,3 @@
-results/
 .DS_Store
 .eclipse.buildship.core.prefs
 .gradle/
@@ -27,3 +26,6 @@ obj/
 pkg/
 release/wi-kubernetes-manifests.yaml
 vendor/
+*.tar
+results_*.csv
+experiments/raw_data/

@@ -48,7 +48,7 @@ class HipsterShopServer {
         const extraLatency = parseInt(extraLatencyStr, 10);
         if (!isNaN(extraLatency) && extraLatency > 0) {
           // Calcular latència estocàstica utilitzant la transformada de Box-Muller
-          const std = extraLatency * 0.2; // Desviació estàndard
+          const std = extraLatency * 0.1; // Desviació estàndard
           const u = 1 - Math.random();
           const v = Math.random();
           const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);

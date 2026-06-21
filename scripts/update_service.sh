@@ -27,7 +27,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "=== Exportant de Docker i important a MicroK8s (containerd) ==="
+echo "=== Exportant de Docker i important a MicroK8s ==="
 sudo docker save "${SERVICE}:latest" | microk8s ctr images import -
 if [ $? -ne 0 ]; then
     echo "Error al importar la imatge."
@@ -35,6 +35,6 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "=== Reiniciant el deployment a Kubernetes ==="
-microk8s kubectl rollout restart deployment "${SERVICE}"
+microk8s kubectl rollout restart deployment "${SERVICE}" 2>/dev/null || true
 
 echo "=== $SERVICE actualitzat correctament! ==="
